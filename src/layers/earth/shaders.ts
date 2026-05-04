@@ -13,7 +13,7 @@ export const earthFragmentShader = /* glsl */ `
   varying float vCountryIdx;
 
   void main() {
-    vec3 baseColor = vec3(0.2, 0.55, 1.0);
+    vec3 baseColor = vec3(0.039, 0.055, 0.102);
     gl_FragColor = vec4(baseColor, 1.0);
   }
 `;
