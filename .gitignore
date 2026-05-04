@@ -1,36 +1,39 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# .gitignore template for Expo
+# website: https://expo.dev/
+# docs: https://docs.expo.dev/workflow/expo-cli/
+#
+# Rationale:
+# node_modules/ is always ignored
+# .expo/, .expo-shared/ are Expo’s local state and project-settings cache (see docs)
+#  Metro caches/logs are *.expo, *.tunnel, *.cache, *.tmp, *.log
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
+# Node modules
+node_modules/
 
-# testing
-/coverage
+# Expo local state and caches
+# runtime state (Metro bundler, dev-client data, tunnels)
+.expo/
+# shared project settings (app.json edits, etc.)
+.expo-shared/
 
-# next.js
-/.next/
-/out/
+# Metro bundler caches/logs
+# generic Expo temp files
+*.expo
+# Expo DevTools tunnels
+*.tunnel
+# Metro cache folder
+*.cache
+# temp files created during bundling
+*.tmp
+# build or Metro logs
+*.log
 
-# production
-/build
+# Environment variables
+.env
+.env.local
+.env.*.local
 
-# misc
-.DS_Store
-*.pem
-
-# debug
+# Package manager logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# local env files
-.env*.local
-.env
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
