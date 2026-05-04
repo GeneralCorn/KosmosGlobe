@@ -1,11 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { Canvas as R3FCanvas, useFrame } from "@react-three/fiber/native";
 import { Color } from "three";
 import SceneRoot from "./SceneRoot";
 
 const BACKGROUND = "#06080F";
 const TEXT_SECONDARY = "#7D8590";
+const SPHERE_RADIUS = 1.0;
+const CAMERA_FOV_DEG = 75;
+const HORIZONTAL_FILL_RATIO = 0.95;
+
+function computeCameraZ(): number {
+  const { width, height } = Dimensions.get("window");
+  const aspect = width / height;
+  const vFovRad = (CAMERA_FOV_DEG * Math.PI) / 180;
+  const tanHalfHFov = Math.tan(vFovRad / 2) * aspect;
+  const targetHalfAngle = Math.atan(tanHalfHFov) * HORIZONTAL_FILL_RATIO;
+  return SPHERE_RADIUS / Math.tan(targetHalfAngle);
+}
+
+const CAMERA_Z = computeCameraZ();
 
 const fpsState = { current: 0 };
 
@@ -42,7 +56,7 @@ export default function Canvas() {
         style={styles.canvas}
         gl={{ antialias: false, alpha: false, powerPreference: "default" }}
         scene={{ background: new Color(BACKGROUND) }}
-        camera={{ position: [0, 0, 2.5], fov: 75, near: 0.1, far: 100 }}
+        camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV_DEG, near: 0.1, far: 100 }}
       >
         <SceneRoot />
         <FpsTracker />
