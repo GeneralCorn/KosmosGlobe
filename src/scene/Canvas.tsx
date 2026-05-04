@@ -6,9 +6,9 @@ import SceneRoot from "./SceneRoot";
 
 const BACKGROUND = "#06080F";
 const TEXT_SECONDARY = "#7D8590";
-const SPHERE_RADIUS = 1.0;
+const VISUAL_RADIUS = 1.05;
 const CAMERA_FOV_DEG = 75;
-const HORIZONTAL_FILL_RATIO = 0.95;
+const HORIZONTAL_FILL_RATIO = 0.92;
 
 function computeCameraZ(): number {
   const { width, height } = Dimensions.get("window");
@@ -16,7 +16,7 @@ function computeCameraZ(): number {
   const vFovRad = (CAMERA_FOV_DEG * Math.PI) / 180;
   const tanHalfHFov = Math.tan(vFovRad / 2) * aspect;
   const targetHalfAngle = Math.atan(tanHalfHFov) * HORIZONTAL_FILL_RATIO;
-  return SPHERE_RADIUS / Math.tan(targetHalfAngle);
+  return VISUAL_RADIUS / Math.sin(targetHalfAngle);
 }
 
 const CAMERA_Z = computeCameraZ();
