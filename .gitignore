@@ -1,39 +1,44 @@
-# .gitignore template for Expo
-# website: https://expo.dev/
-# docs: https://docs.expo.dev/workflow/expo-cli/
-#
-# Rationale:
-# node_modules/ is always ignored
-# .expo/, .expo-shared/ are Expo’s local state and project-settings cache (see docs)
-#  Metro caches/logs are *.expo, *.tunnel, *.cache, *.tmp, *.log
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# Node modules
+# dependencies
 node_modules/
 
-# Expo local state and caches
-# runtime state (Metro bundler, dev-client data, tunnels)
+# Expo
 .expo/
-# shared project settings (app.json edits, etc.)
-.expo-shared/
+dist/
+web-build/
+expo-env.d.ts
 
-# Metro bundler caches/logs
-# generic Expo temp files
-*.expo
-# Expo DevTools tunnels
-*.tunnel
-# Metro cache folder
-*.cache
-# temp files created during bundling
-*.tmp
-# build or Metro logs
-*.log
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-# Environment variables
-.env
-.env.local
-.env.*.local
+# Metro
+.metro-health-check*
 
-# Package manager logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+
+# Local reference docs (not part of the public repo)
+API-DOCS.md

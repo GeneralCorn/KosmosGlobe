@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "kosmosglobe",
+    "slug": "kosmosglobe",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#06080F"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.generalcorn.kosmosglobe"
+    },
+    "android": {
+      "package": "com.generalcorn.kosmosglobe",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#06080F"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
