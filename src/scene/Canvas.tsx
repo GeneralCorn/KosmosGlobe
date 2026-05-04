@@ -42,6 +42,7 @@ export default function Canvas() {
         style={styles.canvas}
         gl={{ antialias: false, alpha: false, powerPreference: "default" }}
         scene={{ background: new Color(BACKGROUND) }}
+        camera={{ position: [0, 0, 2.5], fov: 75, near: 0.1, far: 100 }}
       >
         <SceneRoot />
         <FpsTracker />
