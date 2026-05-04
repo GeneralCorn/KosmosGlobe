@@ -25,3 +25,18 @@ export function latLngToVector3(
   setVector3FromLatLng(v, lat, lng, radius);
   return v;
 }
+
+export function writeLatLngToFloat32(
+  arr: Float32Array,
+  offset: number,
+  lat: number,
+  lng: number,
+  radius = 1,
+): void {
+  const phi = lat * DEG;
+  const theta = -lng * DEG;
+  const cosPhi = Math.cos(phi);
+  arr[offset] = radius * cosPhi * Math.cos(theta);
+  arr[offset + 1] = radius * Math.sin(phi);
+  arr[offset + 2] = radius * cosPhi * Math.sin(theta);
+}

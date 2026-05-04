@@ -1,34 +1,20 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Canvas as R3FCanvas, useFrame } from "@react-three/fiber/native";
-import type { Mesh } from "three";
+import { Color } from "three";
+import SceneRoot from "./SceneRoot";
 
 const BACKGROUND = "#06080F";
-const SPHERE_COLOR = "#5BA8FF";
 const TEXT_SECONDARY = "#7D8590";
 
 const fpsState = { current: 0 };
-
-function RotatingSphere() {
-  const ref = useRef<Mesh>(null);
-  useFrame((_, delta) => {
-    if (ref.current) {
-      ref.current.rotation.y += delta * 0.2;
-    }
-  });
-  return (
-    <mesh ref={ref}>
-      <sphereGeometry args={[1, 64, 64]} />
-      <meshBasicMaterial color={SPHERE_COLOR} />
-    </mesh>
-  );
-}
 
 function FpsTracker() {
   useFrame((_, delta) => {
     if (delta > 0) {
       const inst = 1 / delta;
-      fpsState.current = fpsState.current === 0 ? inst : fpsState.current * 0.9 + inst * 0.1;
+      fpsState.current =
+        fpsState.current === 0 ? inst : fpsState.current * 0.9 + inst * 0.1;
     }
   });
   return null;
@@ -54,9 +40,10 @@ export default function Canvas() {
     <View style={styles.root}>
       <R3FCanvas
         style={styles.canvas}
-        gl={{ antialias: false }}
+        gl={{ antialias: false, alpha: false, powerPreference: "default" }}
+        scene={{ background: new Color(BACKGROUND) }}
       >
-        <RotatingSphere />
+        <SceneRoot />
         <FpsTracker />
       </R3FCanvas>
       <FpsReadout />

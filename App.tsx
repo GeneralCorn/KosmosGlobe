@@ -1,3 +1,6 @@
+import * as THREE from "three";
+console.log("[three-check] revision:", THREE.REVISION, "instance:", Math.random());
+
 import React from "react";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
