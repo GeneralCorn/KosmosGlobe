@@ -89,6 +89,10 @@ This protocol applies to every phase below.
 - Country surface heat tinting from data (Phase 6 — Phase 2 left a stub uniform)
 - Arcs (Phase 6/7)
 
+**Primary data source for markers:** Use `/globe/activity` countries (50 entries, each with centroid already attached) as the marker positions. The `/signals` endpoint is currently geographically skewed (US + IR dominate even at limit=200 due to current news cycle). Globe activity gives better geographic spread across 50 countries. Signals feed the detail panel when a marker is tapped.
+
+**Data diversity note:** As of the build date, the API returns markers concentrated in North America, Iran, Western Europe, and a few East Asian countries. Africa, South America, and Southeast Asia are underrepresented in the current news cycle — not a code problem. If, at any point (live API call, different day, or after the API expands coverage), new countries appear in `/globe/activity` or `/signals`, they will automatically appear as markers with no code changes needed. The 50-instance cap in the InstancedMesh and the centroid-to-Vector3 path handle any country the API returns. Do NOT hardcode country lists or skip unknown countries — pass all API-returned entries through the pipeline and let the 50-cap trim if needed.
+
 **Decisions to make and log:**
 1. **Sphere vs. billboard for marker geometry.** Sphere = real 3D, looks good from all angles, more verts. Billboard = always camera-facing, fewer verts, can look weirdly flat at oblique angles. Pick based on visual feel and perf.
 2. **Color encoding: per-instance attribute vs. per-category InstancedMesh.** One InstancedMesh with per-instance color is simpler. Per-category meshes (4 InstancedMeshes, one per category) means each can use a slightly different shader for category-specific effects later. We're using approach 1 unless there's a strong reason. Log if you deviate.
@@ -286,6 +290,8 @@ This protocol applies to every phase below.
 3. **Ground-view toggle.** A button in the dashboard. When on, thin lines drop from each orbital marker down to the country surface — connecting signals to their place. Cheap to implement (one merged LineSegments BufferGeometry), genuinely cool visual.
 
 4. **Country deep-dive panel.** Tap a country (not just a marker — a country plate) → fetches `/api/v2/globe/region/{country}` → bottom sheet shows top signals + open markets in that country. More API integration to demo.
+
+5. **Geographic coverage expansion.** If the live API is now returning signals from underrepresented regions (Africa, South America, Southeast Asia — absent in the May 2026 fixture data due to news-cycle skew), verify those countries render correctly. The pipeline handles them automatically, but worth a visual pass to confirm no centroid lookup issues, no Z-fighting at unusual latitudes, and that jitter stays on-surface near the equator where marker density could increase.
 
 **Decisions:**
 - Pick at most 2 of the 4 above. Quality > quantity. If 1 is well-done, that's better than 3 half-done.
