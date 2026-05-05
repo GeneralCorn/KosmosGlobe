@@ -36,6 +36,96 @@ What changes downstream: scope, timeline, code, dependencies.
 
 ## Entries
 
+## 2026-05-04 [NOTE] Phase 6 — Zoom-aware hierarchical clustering (Path B, planned)
+
+> **Phase 6 — Zoom-aware hierarchical clustering (Path B).**
+>
+> Build a stable cluster tree once per data refresh, walk it per zoom change at runtime. Stable cluster identity (same physical cluster keeps same visual identity across zoom changes — no flicker / re-grouping artifacts during smooth zoom).
+>
+> **Algorithm — agglomerative bottom-up clustering, computed once per data version:**
+> 1. Start with N leaf nodes, one per marker.
+> 2. Compute pairwise great-circle (angular) distances between all leaves on the unit sphere. Use `acos(dot(a, b))` on normalized world positions, NOT screen-space distance — the tree must be view-independent so it stays stable as the user rotates the globe.
+> 3. Repeatedly merge the closest pair into a parent node until one root remains. Each parent stores: weighted-centroid position (slerp on the sphere, weighted by child counts), aggregated count, dominant-category-by-count, max severity, max momentum, list of constituent signal IDs.
+> 4. Each non-leaf node stores its merge distance (the angular distance between its two children) — this is the key threshold for runtime walking.
+>
+> **Runtime per zoom change (or rotation, since dot-product distance is rotation-invariant — only zoom changes the threshold):**
+> 1. Compute the screen-space size threshold from current camera distance: roughly `mergeAngularThreshold = mergePixelThreshold / focalLengthInPixels`. Tunable constant. At default zoom, threshold ~3-5° angular distance; at full zoom-in, < 0.1°.
+> 2. Walk the tree top-down. At each node, if its merge distance ≤ threshold → render the node as a cluster, stop descending. Else → recurse into children.
+> 3. The set of "rendered nodes" at the current threshold is what gets pushed to the InstancedMesh. Each rendered node's instance index is determined by the node's stable ID (allocated once at tree-build time), so as the threshold changes, individual clusters smoothly grow/split rather than re-shuffling visually.
+>
+> **InstancedMesh sync:**
+> - Capacity stays at 100 instances (existing Phase 3 cap covers worst case where all leaves are visible).
+> - Per-frame: only re-sync when zoom changes meaningfully (track `lastThreshold`, only re-walk if `Math.abs(currentThreshold - lastThreshold) > epsilon`). Most frames are no-ops.
+> - When walk produces fewer rendered nodes than last frame, zero-out the matrices of the now-unused instance slots (set scale to 0).
+>
+> **Cluster visual encoding:**
+> - Position: cluster's stored slerp-centroid, projected to its orbital height (use the highest constituent's altitude so clusters don't sink below their hottest signal).
+> - Size: `baseSize + log2(count + 1) * sizeScale` — log so a cluster of 16 isn't 16× a singleton.
+> - Color: dominant category from the locked palette. If categories are tied, pick the one with highest aggregate severity.
+> - No extra ring or badge in v1 — size alone reads as cluster. Reconsider in Phase 7 if needed.
+>
+> **Tap behavior (Phase 4 will need to know about this):**
+> - Tap on a cluster → camera lerps to a position close enough that the cluster's merge threshold falls below the cluster's distance, splitting it. Compute target zoom from the cluster's stored merge distance.
+> - Tap on a singleton → existing Phase 4 popup behavior.
+>
+> **Perf budget:**
+> - Tree build: O(n²) but n ≤ 50, so ~1,250 distance pairs, runs once per ~60s data refresh. Submillisecond.
+> - Runtime walk: O(log n) per visible node, ~50 visits worst case per zoom change. Submillisecond.
+> - No per-frame allocations in the walk — preallocate the visited-node array once at tree build, reuse on each walk.
+>
+> **Files this will touch in Phase 6:**
+> - New `src/domain/clustering.ts` — pure functions: `buildClusterTree(events)`, `walkTreeAtThreshold(tree, threshold) → renderedNodes[]`. No three imports — operates on `NewsEvent[]` and produces a tree of plain objects with stable IDs.
+> - `src/layers/markers/Markers.tsx` — switch the sync source from `useVisibleEvents()` directly to `walkTreeAtThreshold(tree, currentThreshold)`. Tree is rebuilt when `useStoreVersion()` changes; threshold is tracked from camera distance via `useFrame`.
+> - `src/scene/CameraRig.tsx` — exposes a current-zoom value (camera distance) for the threshold computation.
+>
+> **Fallback if perf becomes an issue (it won't, but documented for completeness):**
+> Path A (greedy per-zoom-change clustering) is the fallback. Drop the tree, do greedy O(n²) screen-space distance grouping every time zoom changes meaningfully. Loses stable identity, gains simplicity. Don't switch unless you measure a real problem.
+
+**Links**
+- Related entries: `2026-05-04 [DECISION] Phase 3 readability tuning before clustering lands`
+
+## 2026-05-04 [DECISION] Phase 3 readability tuning before clustering lands
+
+**Summary**
+On-device review showed the Middle East cluster collapsing into a single dot — same-country signals were stacking visually because (a) the ±0.5° lat/lng jitter from Phase 1 spread markers within ~55 km, well inside small countries like Israel/Lebanon, and (b) all markers shared one orbital altitude (1.06 sphere radius), so two markers at nearby lat/lng drew at nearly the same world point and Z-fought into one visible blob. Two fixes applied: jitter amplitude raised from ±0.5° to ±2.5° in `src/domain/mapping.ts:62`, and orbital altitude is now per-marker via `markerOrbitRadius(event)` in `src/domain/encodings.ts`, ranging 1.05 to 1.09 of sphere radius based on `severity * 0.025 + idHash * 0.015`.
+
+**Context**
+Real cluster aggregation is Phase 6 (see the planning note above). Phase 3 needs to be visually decoded *now* without zoom (Phase 4 dependency) and without aggregation. The two cheap fixes attack the two failure modes separately: (a) increased surface jitter spreads markers across country interiors instead of clustering at the centroid, (b) altitude variation pulls coplanar markers apart along the third axis. Severity weights heavier in the altitude formula (0.025 of 0.04 budget) so high-severity signals visibly float higher, reinforcing the size + brightness severity story. The id-hash component (0.015) breaks ties for equal-severity-same-country markers using the same FNV-1a hash already used for jitter, so altitude is deterministic across data refreshes — a marker doesn't visibly hop when the API returns the same signal twice. The Middle East stays dense but is now a readable 3D cloud rather than one dot.
+
+**Impact**
+Phase 4 raycasting will hit individual marker spheres rather than the worst-case "all 50 markers occupy one screen pixel" degenerate hit-test. Phase 6 clustering will absorb both the surface jitter and the altitude variation as inputs — leaves of the tree will already be spatially separated, so the agglomerative merge distances will be more meaningful. If markers feel overspread on device, drop jitter back to 1.5° or shrink the altitude budget; if still too tight, the Phase 6 clustering note above is the real solution and should be prioritized over further tuning.
+
+**Links**
+- Related entries: `2026-05-04 [NOTE] Phase 6 — Zoom-aware hierarchical clustering (Path B, planned)`, `2026-05-04 [DECISION] Marker geometry, scale, and orbital offset`, `2026-05-04 [DECISION] Jitter algorithm`
+
+## 2026-05-04 [MILESTONE] Phase 3 complete — orbital markers wired to store
+
+**Summary**
+Single `InstancedMesh` of orbital signal markers, capacity 100, render cap 50, mounted inside the rotating earth group. Per-instance position from country centroid plus deterministic jitter, scaled by severity, colored by category, brightness modulated by freshness, with the most recent marker pulsing at 0.5 Hz. Sync is version-stamped: most frames only update one matrix (the pulse), full re-sync only on store version increment. Zero per-frame allocations confirmed by grep of the `useFrame` body.
+
+**Context**
+The component reads from the store via `useStore.getState()` rather than the `useStoreVersion()` selector hook; the hook variant would subscribe the component and trigger React re-renders on every increment, which violates the "scene tree mounts once" hard rule. All scratch objects (`tempVec`, `tempScale`, `tempMat`, `tempColor`, `IDENTITY_QUAT`) live at module scope and are mutated in place each frame. Filter narrowing (`cats && cats.length > 0`) keeps `events.filter` and the inline arrow off the hot path; that allocation only happens on version change, not per frame. `frustumCulled={false}` on the InstancedMesh prevents the engine from culling the entire mesh based on a bounding sphere that only describes a single instance at the origin.
+
+**Impact**
+Phase 4 can now raycast against `meshRef.current` to detect marker taps, then write the matched signal id to `state.selectedSignalId`. The bottom sheet will read `useSelectedEvent()` to render details. Per-instance colors arrive via `InstancedMesh.setColorAt`, which lazily allocates `instanceColor` on first call, so material reads `instanceColor` automatically without a `vertexColors` flag. Marker hit-test order is currently the same as `events` array order from the API (sorted by `rank_score` descending); Phase 4 raycasting will return the closest hit, not the first, so order won't matter for interaction.
+
+**Links**
+- Related entries: `2026-05-04 [DECISION] Marker geometry, scale, and orbital offset`, `2026-05-04 [MILESTONE] Phase 1 complete — data layer`
+
+## 2026-05-04 [DECISION] Marker geometry, scale, and orbital offset
+
+**Summary**
+Markers use `SphereGeometry(1, 12, 12)` (288 triangles per instance, 50 instances → 14,400 triangles total at the marker layer, well under the earth's plate budget). Base size formula is `(0.012 + severity * 0.018) * clusterBoost`, with `clusterBoost` stubbed at 1.0; this puts a severity-zero marker at 1.2% of sphere radius and a severity-one marker at 3.0% of sphere radius. Orbital offset is 6% of sphere radius (mid-range of the brief's 5–8% spec). Pulse on the most recent marker oscillates ±10% of base scale at 0.5 Hz via `Math.sin(elapsedTime * 2π * 0.5)`. Phase 1's 0.5° jitter amplitude is retained — at this scale it produces about 55 km of in-country spread, visible as a tight cluster but not a stack.
+
+**Context**
+Sphere chosen over billboard because billboards on r3f-native need a custom shader to face the camera (drei's `<Billboard>` does not support InstancedMesh). A 12×12 sphere is cheaper than the standard 32×16 default and visually indistinguishable at the marker's size on a phone screen. Severity → size is multiplicative on a small base because additive ranges (`0.02 + severity * 0.05` from the Phase 1 stub) made high-severity markers visually dominate too aggressively at the chosen orbital offset; smaller base with multiplicative cluster boost reads as cleaner. Brightness multiplier on the per-instance color uses `EMISSION_FLOOR = 0.55`, so even 48-hour-old markers stay readable while sub-hour markers approach full saturation.
+
+**Impact**
+If markers feel too small on device, increase `severityScale` from 0.018 to 0.024. If the cluster on a hot country looks like a single dot, increase the Phase 1 jitter amplitude in `domain/mapping.ts` from 0.5° to 0.8°. If the pulse is distracting in long demo recordings, drop `PULSE_AMPLITUDE` from 0.10 to 0.05 or `PULSE_FREQ` from 0.5 to 0.3. None of these require touching the rendering pipeline.
+
+**Links**
+- Related entries: `2026-05-04 [MILESTONE] Phase 3 complete — orbital markers wired to store`, `2026-05-04 [DECISION] Jitter algorithm`
+
 ## 2026-05-04 [MILESTONE] Phase 1 complete — data layer
 
 **Summary**

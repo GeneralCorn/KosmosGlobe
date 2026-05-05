@@ -7,14 +7,31 @@ const MARKER_RGB: Record<Category, [number, number, number]> = {
   other: [0.7216, 0.6078, 0.9098],
 };
 
+function fnv1a(input: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+export function markerOrbitRadius(event: NewsEvent): number {
+  const base = 1.05;
+  const severityRange = 0.025;
+  const hashRange = 0.015;
+  const hashFloat = fnv1a(event.id) / 0x100000000;
+  return base + event.severity * severityRange + hashFloat * hashRange;
+}
+
 export function clusterBoost(_target: NewsEvent, _all: NewsEvent[]): number {
-  return 0;
+  return 1.0;
 }
 
 export function markerSize(event: NewsEvent, boost: number): number {
-  const base = 0.02;
-  const severityScale = 0.05;
-  return base + event.severity * severityScale + boost * 0.01;
+  const base = 0.012;
+  const severityScale = 0.018;
+  return (base + event.severity * severityScale) * boost;
 }
 
 export function markerColor(event: NewsEvent): [number, number, number] {

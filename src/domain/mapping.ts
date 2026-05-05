@@ -60,7 +60,7 @@ function fnv1a(input: string): number {
 
 export function jitter(
   seed: string,
-  amplitude = 0.5,
+  amplitude = 2.5,
 ): { lat: number; lng: number } {
   const h = fnv1a(seed);
   const latRaw = (h >>> 16) / 0x10000;
