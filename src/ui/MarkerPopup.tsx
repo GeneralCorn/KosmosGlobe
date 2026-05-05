@@ -56,9 +56,13 @@ export default function MarkerPopup() {
       }
       intervalRef.current = setInterval(() => {
         if (gestureState.hasSelectedScreen) {
-          setPos({
-            x: gestureState.selectedScreenX,
-            y: gestureState.selectedScreenY,
+          const nx = gestureState.selectedScreenX;
+          const ny = gestureState.selectedScreenY;
+          setPos((prev) => {
+            if (Math.abs(prev.x - nx) < 2 && Math.abs(prev.y - ny) < 2) {
+              return prev;
+            }
+            return { x: nx, y: ny };
           });
         }
       }, 67);

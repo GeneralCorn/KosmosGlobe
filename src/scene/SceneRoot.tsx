@@ -5,6 +5,7 @@ import Atmosphere from "../layers/atmosphere/Atmosphere";
 import Markers from "../layers/markers/Markers";
 import { gestureState } from "./gestureState";
 import { globeGroupRef } from "./globeGroupRef";
+import { useStore } from "../domain/store";
 
 const AUTO_ROTATION_RATE = 0.05;
 const IDLE_RESUME_MS = 0;
@@ -16,10 +17,12 @@ export default function SceneRoot() {
       return;
     }
 
+    const hasSelection = useStore.getState().selectedSignalId !== null;
     const now = Date.now();
     const idle =
       !gestureState.isInteracting &&
       !gestureState.isLerpingToSelection &&
+      !hasSelection &&
       now - gestureState.lastInteractionTime > IDLE_RESUME_MS;
 
     if (idle) {
