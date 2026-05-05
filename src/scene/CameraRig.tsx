@@ -1,23 +1,29 @@
 import { useFrame, useThree } from "@react-three/fiber/native";
-import { Quaternion, Vector3 } from "three";
-import { gestureState } from "./gestureState";
+import { Vector3 } from "three";
+import { gestureState, lerpAngle } from "./gestureState";
 import { globeGroupRef } from "./globeGroupRef";
 import { setVector3FromLatLng } from "../layers/earth/latlng";
 import { markerOrbitRadius } from "../domain/encodings";
 import { useStore } from "../domain/store";
 
-const LERP_FACTOR = 0.04;
+const LERP_FACTOR = 0.09;
 const SELECTION_CAMERA_Z = 1.65;
-const DEFAULT_CAMERA_Z = 2.2;
-const STOP_THRESHOLD = 0.0002;
+const STOP_THRESHOLD = 0.0015;
 
-const markerLocalPos = new Vector3();
-const targetQuat = new Quaternion();
-const CAMERA_FORWARD = new Vector3(0, 0, 1);
+const markerVec = new Vector3();
 const tempVec = new Vector3();
 
 let currentLerpTargetId: string | null = null;
 let prevFlyTarget: { lat: number; lng: number } | null = null;
+let targetRotX = 0;
+let targetRotY = 0;
+
+function angleDelta(from: number, to: number): number {
+  let d = to - from;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  return d;
+}
 
 export default function CameraRig() {
   const { size, camera } = useThree();
@@ -50,12 +56,12 @@ export default function CameraRig() {
     if (hasNewTarget) {
       currentLerpTargetId = targetId;
       prevFlyTarget = flyTo ?? null;
-      setVector3FromLatLng(markerLocalPos, targetPos!.lat, targetPos!.lng, 1);
-      markerLocalPos.normalize();
-      targetQuat.setFromUnitVectors(markerLocalPos, CAMERA_FORWARD);
-      if (group && group.quaternion.dot(targetQuat) < 0) {
-        targetQuat.set(-targetQuat.x, -targetQuat.y, -targetQuat.z, -targetQuat.w);
-      }
+      setVector3FromLatLng(markerVec, targetPos!.lat, targetPos!.lng, 1);
+      const mx = markerVec.x;
+      const my = markerVec.y;
+      const mz = markerVec.z;
+      targetRotY = Math.atan2(-mx, mz);
+      targetRotX = Math.atan2(my, Math.sqrt(mx * mx + mz * mz));
       gestureState.isLerpingToSelection = true;
       if (ev && !gestureState.isInteracting) {
         gestureState.targetCameraZ = SELECTION_CAMERA_Z;
@@ -69,16 +75,18 @@ export default function CameraRig() {
     }
 
     if (gestureState.isLerpingToSelection && group) {
-      group.quaternion.slerp(targetQuat, LERP_FACTOR);
-      const diff = 1 - Math.abs(group.quaternion.dot(targetQuat));
-      if (diff < STOP_THRESHOLD) {
+      gestureState.rotX = lerpAngle(gestureState.rotX, targetRotX, LERP_FACTOR);
+      gestureState.rotY = lerpAngle(gestureState.rotY, targetRotY, LERP_FACTOR);
+      group.rotation.set(gestureState.rotX, gestureState.rotY, 0);
+
+      const dx = Math.abs(angleDelta(gestureState.rotX, targetRotX));
+      const dy = Math.abs(angleDelta(gestureState.rotY, targetRotY));
+      if (dx < STOP_THRESHOLD && dy < STOP_THRESHOLD) {
+        gestureState.rotX = targetRotX;
+        gestureState.rotY = targetRotY;
+        group.rotation.set(targetRotX, targetRotY, 0);
         gestureState.isLerpingToSelection = false;
         if (flyTo) snapshot.setFlyToTarget(null);
-        const rx = group.rotation.x;
-        const ry = group.rotation.y;
-        group.rotation.set(rx, ry, 0);
-        gestureState.rotX = rx;
-        gestureState.rotY = ry;
       }
     }
 

@@ -30,12 +30,10 @@ const HIT_SCALE = 2.2;
 const PULSE_FREQ = 0.5;
 const PULSE_AMPLITUDE = 0.08;
 const EMISSION_FLOOR = 0.55;
-const BASE_SIZE = 0.009;
-const SEVERITY_RANGE = 0.008;
-const CLUSTER_BASE = 0.012;
-const CLUSTER_LOG_SCALE = 0.0025;
-const REFERENCE_CAMERA_Z = 2.2;
-const MIN_SIZE_SCALE = 0.45;
+const BASE_SIZE = 0.0063;
+const SEVERITY_RANGE = 0.0056;
+const CLUSTER_BASE = 0.0105;
+const CLUSTER_LOG_SCALE = 0.00175;
 
 const tempVec = new Vector3();
 const tempScale = new Vector3();
@@ -55,7 +53,7 @@ function markerWorldSize(count: number, severity: number): number {
   if (count === 1) {
     return BASE_SIZE + severity * SEVERITY_RANGE;
   }
-  return 0.015 + Math.log2(count) * CLUSTER_LOG_SCALE;
+  return CLUSTER_BASE + Math.log2(count) * CLUSTER_LOG_SCALE;
 }
 
 export default function Markers() {
