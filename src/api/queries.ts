@@ -53,6 +53,7 @@ export function useExplorerOverview() {
       tweetEvidence24h: data.stats.tweet_evidence_24h,
       totalVolume24h: data.stats.total_volume_24h,
       activeCountries: data.stats.active_countries,
+      breakingNews: data.breaking_news ?? [],
     }),
     staleTime: STALE_MS,
     refetchInterval: REFETCH_MS,

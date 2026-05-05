@@ -15,6 +15,7 @@ type StoreState = {
   detailMode: boolean;
   filters: Filters;
   version: number;
+  flyToTarget: { lat: number; lng: number } | null;
   setEvents: (events: NewsEvent[]) => void;
   setCountryHeat: (heat: CountryHeat[]) => void;
   setSelectedSignal: (id: string | null) => void;
@@ -23,6 +24,7 @@ type StoreState = {
   setFilters: (filters: Filters) => void;
   toggleCategory: (category: Category) => void;
   clearFilters: () => void;
+  setFlyToTarget: (target: { lat: number; lng: number } | null) => void;
 };
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -33,12 +35,13 @@ export const useStore = create<StoreState>((set, get) => ({
   detailMode: false,
   filters: { categories: null },
   version: 0,
+  flyToTarget: null,
   setEvents: (events) =>
     set((state) => ({ events, version: state.version + 1 })),
   setCountryHeat: (heat) =>
     set((state) => ({ countryHeat: heat, version: state.version + 1 })),
   setSelectedSignal: (id) =>
-    set({ selectedSignalId: id, popupExpanded: false, detailMode: false }),
+    set({ selectedSignalId: id, popupExpanded: false, detailMode: false, flyToTarget: null }),
   setPopupExpanded: (expanded) => set({ popupExpanded: expanded }),
   setDetailMode: (detail) => set({ detailMode: detail }),
   setFilters: (filters) =>
@@ -58,6 +61,7 @@ export const useStore = create<StoreState>((set, get) => ({
       filters: { categories: null },
       version: state.version + 1,
     })),
+  setFlyToTarget: (target) => set({ flyToTarget: target }),
 }));
 
 export const useVisibleEvents = (): NewsEvent[] =>

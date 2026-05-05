@@ -45,10 +45,14 @@ export type MarketSnapshot = {
 export type Evidence = {
   id?: string;
   source?: string;
+  source_name?: string;
+  source_type?: string;
   title?: string;
   url?: string;
   published_at?: string;
+  occurred_at?: string;
   type?: string;
+  evidence_type?: string;
   [key: string]: unknown;
 };
 
@@ -135,6 +139,7 @@ export type NewsEvent = {
 export type CountryHeat = {
   code: string;
   heatScore: number;
+  name?: string;
 };
 
 export type ExplorerStats = {
@@ -144,6 +149,7 @@ export type ExplorerStats = {
   tweetEvidence24h: number;
   totalVolume24h: number;
   activeCountries: number;
+  breakingNews: Evidence[];
 };
 
 export type Filters = {

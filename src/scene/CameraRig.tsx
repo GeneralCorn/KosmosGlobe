@@ -15,6 +15,7 @@ const CAMERA_FORWARD = new Vector3(0, 0, 1);
 const tempVec = new Vector3();
 
 let currentLerpTargetId: string | null = null;
+let prevFlyTarget: { lat: number; lng: number } | null = null;
 
 export default function CameraRig() {
   const { size, camera } = useThree();
@@ -22,6 +23,7 @@ export default function CameraRig() {
   useFrame(() => {
     const snapshot = useStore.getState();
     const selId = snapshot.selectedSignalId;
+    const flyTo = snapshot.flyToTarget;
 
     let ev = null;
     if (selId) {
@@ -35,29 +37,38 @@ export default function CameraRig() {
     }
 
     const group = globeGroupRef.current;
+    const targetPos = ev ? ev.position : (flyTo ?? null);
+    const targetId = ev ? ev.id : (flyTo ? "fly" : null);
 
-    if (ev && (!gestureState.isLerpingToSelection || ev.id !== currentLerpTargetId)) {
-      currentLerpTargetId = ev.id;
-      setVector3FromLatLng(markerLocalPos, ev.position.lat, ev.position.lng, 1);
+    const hasNewTarget =
+      targetPos !== null &&
+      (!gestureState.isLerpingToSelection ||
+        (ev ? ev.id !== currentLerpTargetId : flyTo !== prevFlyTarget));
+
+    if (hasNewTarget) {
+      currentLerpTargetId = targetId;
+      prevFlyTarget = flyTo ?? null;
+      setVector3FromLatLng(markerLocalPos, targetPos!.lat, targetPos!.lng, 1);
       markerLocalPos.normalize();
       targetQuat.setFromUnitVectors(markerLocalPos, CAMERA_FORWARD);
       if (group && group.quaternion.dot(targetQuat) < 0) {
-        targetQuat.negate();
+        targetQuat.set(-targetQuat.x, -targetQuat.y, -targetQuat.z, -targetQuat.w);
       }
       gestureState.isLerpingToSelection = true;
     }
 
-    if (!ev) {
+    if (!targetPos) {
       currentLerpTargetId = null;
+      prevFlyTarget = null;
       gestureState.isLerpingToSelection = false;
     }
 
     if (gestureState.isLerpingToSelection && group) {
       group.quaternion.slerp(targetQuat, LERP_FACTOR);
-
       const diff = 1 - Math.abs(group.quaternion.dot(targetQuat));
       if (diff < STOP_THRESHOLD) {
         gestureState.isLerpingToSelection = false;
+        if (flyTo) snapshot.setFlyToTarget(null);
         const rx = group.rotation.x;
         const ry = group.rotation.y;
         group.rotation.set(rx, ry, 0);

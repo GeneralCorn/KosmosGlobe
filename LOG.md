@@ -36,6 +36,31 @@ What changes downstream: scope, timeline, code, dependencies.
 
 ## Entries
 
+## 2026-05-04 [MILESTONE] Phase 5 complete — dashboard with real data
+
+**Summary**
+All bottom sheet sections wired to live API data. Peek shows real stats and a live UTC clock. Mid snap shows top 4 countries by heat score (tappable fly-to) and top 3 breaking headlines (URL taps). Full snap shows source mix bars, accelerating signals list, scrollable live evidence ticker, and a filter rail that filters globe markers in real time.
+
+**Context**
+Breaking news entries in `/explorer/overview` have no `signal_id` field — all headline taps open the URL via `Linking.openURL`. Evidence field names in the API differ from the initial type stub (`evidence_type` not `type`, `source_name` not `source`, `occurred_at` not `published_at`) — updated the `Evidence` type to include real field names while keeping the legacy stubs for backwards compat. `ExplorerStats` extended to carry `breakingNews[]` via the existing select transform so no second network call is needed. `CountryHeat` extended with `name?: string` threaded from `GlobeCountry.name` through `globeCountryToHeat`.
+
+**Impact**
+Filter rail calls `toggleCategory` → store version bumps → `Markers.tsx` useFrame version check fires → visible markers re-synced with filtered event list. Filtered-out instances disappear because `mesh.count` shrinks to the filtered set size (pre-allocated MAX_INSTANCES buffer stays intact, no GPU resize). Fly-to-country uses a new `flyToTarget: { lat, lng } | null` store field read by `CameraRig` each frame — same quaternion slerp path as signal selection. `setSelectedSignal` clears `flyToTarget` so signal selection always takes priority. `Quaternion.negate()` missing from Three.js type defs in this version; fixed with explicit `set(-x, -y, -z, -w)`.
+
+**Links**
+- Related entries: `2026-05-04 [MILESTONE] Phase 4 complete — interaction layer`
+
+## 2026-05-04 [DECISION] Phase 5 evidence field name mismatch
+
+**Summary**
+The `Evidence` type in `types.ts` used field names that don't match the actual API response (`type` vs `evidence_type`, `source` vs `source_name`, `published_at` vs `occurred_at`). Both the old and real field names are now defined as optional in the type. All Phase 5 UI code uses the real API field names (`evidence_type`, `source_name`, `occurred_at`). MarkerPopup.tsx was already accessing `ev.source` (wrong field) — updated to `ev.source_name ?? ev.source`.
+
+**Context**
+The stub type was written early before a real API call was made. The index signature `[key: string]: unknown` on Evidence meant the bug was silent. Fixed by adding the canonical API field names as typed optional fields.
+
+**Impact**
+Phase 6 and 7 should use `evidence_type`, `source_name`, `occurred_at` when referencing evidence items. The legacy fields (`type`, `source`, `published_at`) remain in the type but will be empty in live data.
+
 ## 2026-05-04 [MILESTONE] Phase 4 complete — interaction layer
 
 **Summary**

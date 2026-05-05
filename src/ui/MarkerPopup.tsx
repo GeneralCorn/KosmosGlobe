@@ -156,7 +156,7 @@ export default function MarkerPopup() {
           {selectedEvent.raw.top_evidence?.slice(0, 2).map((ev, idx) => (
             <View key={idx} style={styles.evidenceRow}>
               <Text style={styles.evidenceSource} numberOfLines={1}>
-                {ev.source ?? "Unknown"}
+                {ev.source_name ?? ev.source ?? "Unknown"}
               </Text>
               <Text style={styles.evidenceTitle} numberOfLines={1}>
                 {ev.title ?? ""}

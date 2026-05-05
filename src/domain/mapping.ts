@@ -112,5 +112,6 @@ export function globeCountryToHeat(c: GlobeCountry): CountryHeat {
   return {
     code: c.country.toUpperCase(),
     heatScore: c.heat_score ?? 0,
+    name: c.name,
   };
 }
