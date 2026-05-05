@@ -3,6 +3,8 @@ import { useFrame } from "@react-three/fiber/native";
 import Earth from "../layers/earth/Earth";
 import Atmosphere from "../layers/atmosphere/Atmosphere";
 import Markers from "../layers/markers/Markers";
+import Pulses from "../layers/pulses/Pulses";
+import Arcs from "../layers/arcs/Arcs";
 import { gestureState } from "./gestureState";
 import { globeGroupRef } from "./globeGroupRef";
 import { useStore } from "../domain/store";
@@ -42,6 +44,8 @@ export default function SceneRoot() {
       <Earth />
       <Atmosphere />
       <Markers />
+      <Pulses />
+      <Arcs />
     </group>
   );
 }

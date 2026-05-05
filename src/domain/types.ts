@@ -155,3 +155,9 @@ export type ExplorerStats = {
 export type Filters = {
   categories: Category[] | null;
 };
+
+export type GlobeRegionResponse = {
+  country: GlobeCountry;
+  markets: MarketSnapshot[];
+  signals: SignalCard[];
+};

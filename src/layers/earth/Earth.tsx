@@ -1,11 +1,12 @@
 import React, { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber/native";
 import { FrontSide } from "three";
-import type { BufferAttribute } from "three";
+import type { BufferAttribute, Mesh } from "three";
 import { buildEarthGeometry } from "./buildGeometry";
 import { earthFragmentShader, earthVertexShader } from "./shaders";
 import { useStore } from "../../domain/store";
 import { countryHeatTint } from "../../domain/encodings";
+import { earthMeshRef, earthIsoByIndex } from "./earthTapTarget";
 
 const OCEAN_RADIUS = 0.998;
 const OCEAN_COLOR = "#0A0E1A";
@@ -16,6 +17,7 @@ export default function Earth() {
     [],
   );
 
+  const plateRef = useRef<Mesh>(null);
   const lastVersionRef = useRef(-1);
   const tintByCountry = useMemo(() => new Float32Array(countryCount), [countryCount]);
   const isoByIndex = useMemo(() => {
@@ -23,10 +25,17 @@ export default function Earth() {
     for (const [code, idx] of indexByIso) {
       arr[idx] = code;
     }
+    earthIsoByIndex.length = 0;
+    for (let i = 0; i < arr.length; i++) {
+      earthIsoByIndex[i] = arr[i];
+    }
     return arr;
   }, [indexByIso, countryCount]);
 
   useFrame(() => {
+    if (plateRef.current && earthMeshRef.current !== plateRef.current) {
+      earthMeshRef.current = plateRef.current;
+    }
     const snap = useStore.getState();
     if (snap.version === lastVersionRef.current) return;
     lastVersionRef.current = snap.version;
@@ -59,7 +68,7 @@ export default function Earth() {
           side={FrontSide}
         />
       </mesh>
-      <mesh geometry={plate}>
+      <mesh ref={plateRef} geometry={plate}>
         <shaderMaterial
           vertexShader={earthVertexShader}
           fragmentShader={earthFragmentShader}

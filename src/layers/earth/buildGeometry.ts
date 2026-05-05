@@ -89,8 +89,10 @@ export function buildEarthGeometry(): EarthGeometry {
     vertOffset += ringPointCount * 2;
 
     const tris = earcut(flat, holeIndices, 2);
-    for (let i = 0; i < tris.length; i += 1) {
+    for (let i = 0; i < tris.length; i += 3) {
       indexList.push(topBase + tris[i]);
+      indexList.push(topBase + tris[i + 2]);
+      indexList.push(topBase + tris[i + 1]);
     }
 
     let ringStart = 0;

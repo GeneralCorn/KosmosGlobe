@@ -10,7 +10,7 @@ import {
 import GorhomBottomSheet, {
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import { useExplorerOverview } from "../api/queries";
+import { useExplorerOverview, useGlobeRegion } from "../api/queries";
 import {
   useCountryHeat,
   useSelectedEvent,
@@ -422,6 +422,50 @@ function IntelligenceCenter() {
   );
 }
 
+function MarketChip({ event }: { event: NewsEvent }) {
+  const market = event.raw.primary_market;
+  if (!market) {
+    return null;
+  }
+  if (event.severity < 0.4 && event.category === "other") {
+    return null;
+  }
+
+  const isOther = event.category === "other";
+  const yesPrice =
+    typeof market["yes_price"] === "number" ? (market["yes_price"] as number) : null;
+  const pricePct = yesPrice !== null ? `${Math.round(yesPrice * 100)}%` : null;
+  const priceColor =
+    isOther
+      ? TEXT_SECONDARY
+      : yesPrice !== null && yesPrice > 0.5
+        ? "#7FE0A8"
+        : ACCENT_RED;
+  const marketUrl =
+    typeof market["url"] === "string" ? (market["url"] as string) : null;
+
+  return (
+    <View style={[styles.marketChipContainer, isOther && { opacity: 0.4 }]}>
+      <Text style={styles.marketChipLabel}>LINKED MARKET</Text>
+      <Text style={styles.marketChipTitle} numberOfLines={2}>
+        {String(market.title ?? "")}
+      </Text>
+      <View style={styles.marketChipRow}>
+        {pricePct !== null && (
+          <Text style={[styles.marketChipPrice, { color: priceColor }]}>
+            {pricePct}{"  "}YES
+          </Text>
+        )}
+        {!isOther && marketUrl && (
+          <TouchableOpacity onPress={() => Linking.openURL(marketUrl)}>
+            <Text style={styles.marketChipLink}>view market →</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+}
+
 function SignalDetail() {
   const selected = useSelectedEvent();
   const setDetailMode = useStore((s) => s.setDetailMode);
@@ -503,9 +547,98 @@ function SignalDetail() {
         </View>
       ))}
 
-      {selected.primaryMarketId && (
-        <View style={styles.marketChip}>
-          <Text style={styles.marketChipText}>view market →</Text>
+      <MarketChip event={selected} />
+
+      <View style={styles.bottomPad} />
+    </View>
+  );
+}
+
+function CountryDetail() {
+  const selectedCountryCode = useStore((s) => s.selectedCountryCode);
+  const setSelectedCountry = useStore((s) => s.setSelectedCountry);
+  const { data, isLoading } = useGlobeRegion(selectedCountryCode);
+
+  const onBack = useCallback(() => {
+    setSelectedCountry(null);
+    bottomSheetRef.current?.snapToIndex(0);
+  }, [setSelectedCountry]);
+
+  if (!selectedCountryCode) {
+    return null;
+  }
+
+  const country = data?.country;
+  const signals = data?.signals?.slice(0, 5) ?? [];
+  const markets = data?.markets?.filter((m) => (m["yes_price"] as number | undefined) !== undefined).slice(0, 3) ?? [];
+
+  return (
+    <View style={styles.stubContent}>
+      <TouchableOpacity onPress={onBack} style={styles.backRow}>
+        <Text style={styles.backLabel}>← globe</Text>
+      </TouchableOpacity>
+
+      <View style={styles.countryHeaderRow}>
+        <Text style={styles.countryCode}>{selectedCountryCode}</Text>
+        {country?.region_group && (
+          <Text style={styles.countryRegion}>
+            {"  ·  "}{country.region_group.replace(/_/g, " ")}
+          </Text>
+        )}
+      </View>
+
+      {country && (
+        <Text style={styles.detailStat}>
+          {country.active_signals?.toLocaleString() ?? "—"} active signals
+          {"  ·  "}
+          {country.active_markets ?? "—"} markets
+          {"  ·  "}
+          heat {country.heat_score?.toFixed(2) ?? "—"}
+        </Text>
+      )}
+
+      {isLoading && <Text style={styles.detailStat}>loading...</Text>}
+
+      {signals.length > 0 && (
+        <View style={styles.section}>
+          <SectionHeader label="TOP SIGNALS" />
+          {signals.map((s, idx) => (
+            <View key={s.id} style={[styles.evidenceRow, idx > 0 && styles.dividerTop]}>
+              <Text style={styles.evidenceTitle} numberOfLines={2}>{s.title}</Text>
+              <Text style={styles.evidenceMeta}>
+                {s.severity?.toFixed(2) ?? "—"} severity
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {markets.length > 0 && (
+        <View style={styles.section}>
+          <SectionHeader label="TOP MARKETS" />
+          {markets.map((m, idx) => {
+            const yesPrice = m["yes_price"] as number | undefined;
+            const pricePct = yesPrice !== undefined ? `${Math.round(yesPrice * 100)}%` : null;
+            const priceColor = yesPrice !== undefined && yesPrice > 0.5 ? "#7FE0A8" : ACCENT_RED;
+            const mUrl = m["url"] as string | undefined;
+            return (
+              <TouchableOpacity
+                key={String(m.id)}
+                style={[styles.velRow, idx > 0 && styles.dividerTop]}
+                disabled={!mUrl}
+                onPress={() => mUrl && Linking.openURL(mUrl)}
+              >
+                <Text style={styles.velTitle} numberOfLines={1}>
+                  {String(m.title ?? "")}
+                </Text>
+                {pricePct && (
+                  <Text style={[styles.marketChipPrice, { color: priceColor }]}>
+                    {pricePct} YES
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
 
@@ -516,7 +649,14 @@ function SignalDetail() {
 
 export default function BottomSheet() {
   const detailMode = useStore((s) => s.detailMode);
+  const selectedCountryCode = useStore((s) => s.selectedCountryCode);
   const snapPoints = useMemo(() => ["15%", "50%", "85%"], []);
+
+  useEffect(() => {
+    if (selectedCountryCode) {
+      bottomSheetRef.current?.snapToIndex(1);
+    }
+  }, [selectedCountryCode]);
 
   return (
     <GorhomBottomSheet
@@ -532,7 +672,12 @@ export default function BottomSheet() {
         contentContainerStyle={styles.scrollContent}
       >
         <LiveIndicator />
-        {detailMode ? <SignalDetail /> : <IntelligenceCenter />}
+        {detailMode
+          ? <SignalDetail />
+          : selectedCountryCode
+            ? <CountryDetail />
+            : <IntelligenceCenter />
+        }
       </BottomSheetScrollView>
     </GorhomBottomSheet>
   );
@@ -867,16 +1012,37 @@ const styles = StyleSheet.create({
     color: TEXT_SECONDARY,
     marginTop: 2,
   },
-  marketChip: {
-    marginTop: 12,
-    borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.2)",
+  marketChipContainer: {
+    marginTop: 16,
+    backgroundColor: "rgba(255,255,255,0.03)",
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    alignSelf: "flex-start",
+    padding: 12,
   },
-  marketChipText: {
+  marketChipLabel: {
+    fontFamily: "Menlo",
+    fontSize: 9,
+    color: TEXT_SECONDARY,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  marketChipTitle: {
+    fontFamily: "System",
+    fontSize: 13,
+    color: TEXT_PRIMARY,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  marketChipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  marketChipPrice: {
+    fontFamily: "Menlo",
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  marketChipLink: {
     fontFamily: "Menlo",
     fontSize: 10,
     color: TEXT_SECONDARY,
@@ -884,5 +1050,22 @@ const styles = StyleSheet.create({
   dividerTop: {
     borderTopWidth: 0.5,
     borderTopColor: "rgba(255,255,255,0.08)",
+  },
+  countryHeaderRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: 6,
+  },
+  countryCode: {
+    fontFamily: "Menlo",
+    fontSize: 22,
+    color: TEXT_PRIMARY,
+    letterSpacing: 2,
+  },
+  countryRegion: {
+    fontFamily: "Menlo",
+    fontSize: 11,
+    color: TEXT_SECONDARY,
+    letterSpacing: 0.5,
   },
 });

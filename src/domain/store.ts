@@ -11,6 +11,7 @@ type StoreState = {
   events: NewsEvent[];
   countryHeat: CountryHeat[];
   selectedSignalId: string | null;
+  selectedCountryCode: string | null;
   popupExpanded: boolean;
   detailMode: boolean;
   filters: Filters;
@@ -19,6 +20,7 @@ type StoreState = {
   setEvents: (events: NewsEvent[]) => void;
   setCountryHeat: (heat: CountryHeat[]) => void;
   setSelectedSignal: (id: string | null) => void;
+  setSelectedCountry: (code: string | null) => void;
   setPopupExpanded: (expanded: boolean) => void;
   setDetailMode: (detail: boolean) => void;
   setFilters: (filters: Filters) => void;
@@ -31,6 +33,7 @@ export const useStore = create<StoreState>((set, get) => ({
   events: [],
   countryHeat: [],
   selectedSignalId: null,
+  selectedCountryCode: null,
   popupExpanded: false,
   detailMode: false,
   filters: { categories: null },
@@ -41,7 +44,9 @@ export const useStore = create<StoreState>((set, get) => ({
   setCountryHeat: (heat) =>
     set((state) => ({ countryHeat: heat, version: state.version + 1 })),
   setSelectedSignal: (id) =>
-    set({ selectedSignalId: id, popupExpanded: false, detailMode: false, flyToTarget: null }),
+    set({ selectedSignalId: id, selectedCountryCode: null, popupExpanded: false, detailMode: false, flyToTarget: null }),
+  setSelectedCountry: (code) =>
+    set({ selectedCountryCode: code, selectedSignalId: null, popupExpanded: false, detailMode: false }),
   setPopupExpanded: (expanded) => set({ popupExpanded: expanded }),
   setDetailMode: (detail) => set({ detailMode: detail }),
   setFilters: (filters) =>

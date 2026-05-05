@@ -3,12 +3,12 @@ import { useFrame } from "@react-three/fiber/native";
 import { Color, InstancedMesh, Matrix4, Quaternion, Vector3 } from "three";
 import { useStore } from "../../domain/store";
 import {
-  clusterBoost,
   markerColor,
   markerEmission,
   markerOrbitRadius,
   markerSize,
 } from "../../domain/encodings";
+import { computeClusterBoosts } from "./clustering";
 import { setVector3FromLatLng } from "../earth/latlng";
 import { hitMeshRef } from "./hitMeshRef";
 
@@ -20,6 +20,7 @@ const PULSE_AMPLITUDE = 0.1;
 const EMISSION_FLOOR = 0.55;
 
 const tempVec = new Vector3();
+const boostsCache = new Float32Array(RENDER_CAP);
 const tempScale = new Vector3();
 const hitTempScale = new Vector3();
 const tempMat = new Matrix4();
@@ -55,6 +56,8 @@ export default function Markers() {
       let mostRecentIdx = -1;
       let lowestFreshness = Infinity;
 
+      computeClusterBoosts(visible, boostsCache, count);
+
       for (let i = 0; i < count; i += 1) {
         const ev = visible[i];
         setVector3FromLatLng(
@@ -64,8 +67,7 @@ export default function Markers() {
           markerOrbitRadius(ev),
         );
 
-        const boost = clusterBoost(ev, visible);
-        const size = markerSize(ev, boost);
+        const size = markerSize(ev, boostsCache[i]);
         tempScale.set(size, size, size);
 
         tempMat.compose(tempVec, IDENTITY_QUAT, tempScale);
@@ -113,8 +115,7 @@ export default function Markers() {
           ev.position.lng,
           markerOrbitRadius(ev),
         );
-        const boost = clusterBoost(ev, visible);
-        pulseBaseScaleRef.current = markerSize(ev, boost);
+        pulseBaseScaleRef.current = markerSize(ev, boostsCache[mostRecentIdx]);
       } else {
         pulseIndexRef.current = -1;
       }

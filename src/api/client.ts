@@ -1,14 +1,16 @@
 import type { V2Envelope } from "../domain/types";
 import explorerFixture from "./fixtures/explorer.json";
 import signalsFixture from "./fixtures/signals-top.json";
+import signalsVelocityFixture from "./fixtures/signals-velocity.json";
 import globeFixture from "./fixtures/globe.json";
 
 export const KOSMOS_BASE_URL = "https://api.kosmos.fyi";
 
 const FIXTURE_TABLE: Record<string, unknown> = {
   "/api/v2/explorer/overview": explorerFixture,
-  "/api/v2/signals?sort=top&limit=50": signalsFixture,
-  "/api/v2/globe/activity?limit=50": globeFixture,
+  "/api/v2/signals?sort=top&limit=100": signalsFixture,
+  "/api/v2/signals?sort=velocity&limit=25": signalsVelocityFixture,
+  "/api/v2/globe/activity?limit=100": globeFixture,
 };
 
 function shouldUseFixtures(): boolean {
