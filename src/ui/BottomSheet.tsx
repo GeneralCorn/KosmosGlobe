@@ -12,7 +12,8 @@ const TEXT_SECONDARY = "#7D8590";
 const ACCENT_RED = "#FF6B4A";
 
 function LiveIndicator() {
-  const stats = useStore((s) => s);
+  const signalCount = useStore((s) => s.events.length);
+  const countryCount = useStore((s) => s.countryHeat.length);
   const now = new Date();
   const timeStr = `${now.getUTCHours().toString().padStart(2, "0")}:${now.getUTCMinutes().toString().padStart(2, "0")} UTC`;
 
@@ -24,7 +25,7 @@ function LiveIndicator() {
         <Text style={styles.timestamp}>{timeStr}</Text>
       </View>
       <Text style={styles.statsLine}>
-        {stats.events.length} signals · {stats.countryHeat.length} countries
+        {signalCount} signals · {countryCount} countries
       </Text>
     </View>
   );

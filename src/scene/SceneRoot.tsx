@@ -1,19 +1,17 @@
-import React, { useRef } from "react";
+import React from "react";
 import { useFrame } from "@react-three/fiber/native";
-import type { Group } from "three";
 import Earth from "../layers/earth/Earth";
 import Atmosphere from "../layers/atmosphere/Atmosphere";
 import Markers from "../layers/markers/Markers";
 import { gestureState } from "./gestureState";
+import { globeGroupRef } from "./globeGroupRef";
 
 const AUTO_ROTATION_RATE = 0.05;
-const IDLE_RESUME_MS = 5000;
+const IDLE_RESUME_MS = 0;
 
 export default function SceneRoot() {
-  const rotRef = useRef<Group>(null);
-
   useFrame((state, delta) => {
-    const group = rotRef.current;
+    const group = globeGroupRef.current;
     if (!group) {
       return;
     }
@@ -28,13 +26,16 @@ export default function SceneRoot() {
       gestureState.rotY += delta * AUTO_ROTATION_RATE;
     }
 
-    group.rotation.x = gestureState.rotX;
-    group.rotation.y = gestureState.rotY;
+    if (!gestureState.isLerpingToSelection) {
+      group.rotation.x = gestureState.rotX;
+      group.rotation.y = gestureState.rotY;
+    }
+
     state.camera.position.z = gestureState.cameraZ;
   });
 
   return (
-    <group ref={rotRef}>
+    <group ref={globeGroupRef}>
       <Earth />
       <Atmosphere />
       <Markers />

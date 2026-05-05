@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import type {
   Category,
   CountryHeat,
@@ -60,14 +61,16 @@ export const useStore = create<StoreState>((set, get) => ({
 }));
 
 export const useVisibleEvents = (): NewsEvent[] =>
-  useStore((state) => {
-    const cats = state.filters.categories;
-    if (!cats || cats.length === 0) {
-      return state.events;
-    }
-    const allowed = new Set(cats);
-    return state.events.filter((e) => allowed.has(e.category));
-  });
+  useStore(
+    useShallow((state) => {
+      const cats = state.filters.categories;
+      if (!cats || cats.length === 0) {
+        return state.events;
+      }
+      const allowed = new Set(cats);
+      return state.events.filter((e) => allowed.has(e.category));
+    }),
+  );
 
 export const useSelectedEvent = (): NewsEvent | null =>
   useStore((state) => {

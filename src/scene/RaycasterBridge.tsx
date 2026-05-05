@@ -37,6 +37,9 @@ export default function RaycasterBridge() {
     if (hits.length > 0 && hits[0].instanceId != null) {
       const idx = hits[0].instanceId;
       if (idx < visible.length) {
+        gestureState.selectedScreenX = tap.x;
+        gestureState.selectedScreenY = tap.y;
+        gestureState.hasSelectedScreen = true;
         snapshot.setSelectedSignal(visible[idx].id);
         return;
       }

@@ -40,13 +40,9 @@ function formatFreshness(hours: number): string {
 
 export default function MarkerPopup() {
   const selectedEvent = useSelectedEvent();
-  const { popupExpanded, setPopupExpanded, setDetailMode } = useStore(
-    (s) => ({
-      popupExpanded: s.popupExpanded,
-      setPopupExpanded: s.setPopupExpanded,
-      setDetailMode: s.setDetailMode,
-    }),
-  );
+  const popupExpanded = useStore((s) => s.popupExpanded);
+  const setPopupExpanded = useStore((s) => s.setPopupExpanded);
+  const setDetailMode = useStore((s) => s.setDetailMode);
 
   const opacity = useSharedValue(0);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -55,6 +51,9 @@ export default function MarkerPopup() {
   useEffect(() => {
     if (selectedEvent) {
       opacity.value = withTiming(1, { duration: 150 });
+      if (gestureState.hasSelectedScreen) {
+        setPos({ x: gestureState.selectedScreenX, y: gestureState.selectedScreenY });
+      }
       intervalRef.current = setInterval(() => {
         if (gestureState.hasSelectedScreen) {
           setPos({
