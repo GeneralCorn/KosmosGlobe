@@ -89,10 +89,6 @@ This protocol applies to every phase below.
 - Country surface heat tinting from data (Phase 6 — Phase 2 left a stub uniform)
 - Arcs (Phase 6/7)
 
-**Primary data source for markers:** Use `/globe/activity` countries (50 entries, each with centroid already attached) as the marker positions. The `/signals` endpoint is currently geographically skewed (US + IR dominate even at limit=200 due to current news cycle). Globe activity gives better geographic spread across 50 countries. Signals feed the detail panel when a marker is tapped.
-
-**Data diversity note:** As of the build date, the API returns markers concentrated in North America, Iran, Western Europe, and a few East Asian countries. Africa, South America, and Southeast Asia are underrepresented in the current news cycle — not a code problem. If, at any point (live API call, different day, or after the API expands coverage), new countries appear in `/globe/activity` or `/signals`, they will automatically appear as markers with no code changes needed. The 50-instance cap in the InstancedMesh and the centroid-to-Vector3 path handle any country the API returns. Do NOT hardcode country lists or skip unknown countries — pass all API-returned entries through the pipeline and let the 50-cap trim if needed.
-
 **Decisions to make and log:**
 1. **Sphere vs. billboard for marker geometry.** Sphere = real 3D, looks good from all angles, more verts. Billboard = always camera-facing, fewer verts, can look weirdly flat at oblique angles. Pick based on visual feel and perf.
 2. **Color encoding: per-instance attribute vs. per-category InstancedMesh.** One InstancedMesh with per-instance color is simpler. Per-category meshes (4 InstancedMeshes, one per category) means each can use a slightly different shader for category-specific effects later. We're using approach 1 unless there's a strong reason. Log if you deviate.
@@ -218,6 +214,8 @@ This protocol applies to every phase below.
 - `useVisibleEvents()` selector applies the filter
 - Markers fade in/out as filter changes — animation in `useFrame`, NOT a React re-render of the InstancedMesh
 - The dashboard sections also re-derive based on filter (e.g., "top regions" reflects filtered events)
+
+**Geographic diversity note:** As of the build date the API is skewed toward North America, Iran, and Western Europe due to the current news cycle. Africa, South America, and Southeast Asia are underrepresented — not a code problem. Any new country that appears in `/globe/activity` or `/signals` will render automatically; the centroid-to-Vector3 pipeline is generic. Do not hardcode country lists or skip unknown countries. The 50-cap trims if needed. If the live API is returning more diverse data by the time you reach this phase, verify those countries render correctly — centroid lookup resolves, jitter stays on-surface, no Z-fighting at unusual latitudes.
 
 **Out of scope:**
 - Bottom-sheet detail view sections (those use Phase 4's stub or get filled in Phase 7)
