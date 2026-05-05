@@ -15,7 +15,7 @@ The app runs against local API fixtures by default (`src/api/fixtures/`). To swi
 ## Requirements
 
 - Node 20+
-- Xcode 16+ with iOS 17 simulator
+- Xcode 16+ with iOS 17 simulator or physical iPhone 13+
 - CocoaPods (`brew install cocoapods`)
 
 ## Architecture
@@ -60,16 +60,6 @@ The color palette is intentionally minimal and locked. Severity is encoded by ma
 | Other marker | `#B89BE8` |
 
 Typography uses two fonts only: JetBrains Mono for all data and labels, Inter for headlines and body text in the bottom sheet.
-
-## API endpoints used
-
-| Endpoint | Use | Poll interval |
-|---|---|---|
-| `GET /api/v2/globe/activity?limit=50` | Country heat scores | 60s |
-| `GET /api/v2/signals?sort=top&limit=50` | Signal markers | 60s |
-| `GET /api/v2/explorer/overview` | Dashboard stats | 60s |
-| `GET /api/v2/signals/{id}` | Bottom sheet detail | On tap |
-| `GET /api/v2/signals/facets` | Filter rail counts | On expand |
 
 ## Project structure
 
