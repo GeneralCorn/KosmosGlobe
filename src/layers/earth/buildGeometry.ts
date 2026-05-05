@@ -11,6 +11,8 @@ export type EarthGeometry = {
   plate: BufferGeometry;
   border: BufferGeometry;
   countryCount: number;
+  tintData: Float32Array;
+  indexByIso: Map<string, number>;
 };
 
 let cached: EarthGeometry | null = null;
@@ -19,7 +21,7 @@ export function buildEarthGeometry(): EarthGeometry {
   if (cached) {
     return cached;
   }
-  const { polygons, count } = loadCountries();
+  const { polygons, indexByIso, count } = loadCountries();
 
   const positionList: number[] = [];
   const countryIndexList: number[] = [];
@@ -118,16 +120,18 @@ export function buildEarthGeometry(): EarthGeometry {
       ? new Uint32Array(indexList)
       : new Uint16Array(indexList);
   const borderPositions = new Float32Array(borderPositionList);
+  const tintData = new Float32Array(positionList.length / 3);
 
   const plate = new BufferGeometry();
   plate.setAttribute("position", new BufferAttribute(positions, 3));
   plate.setAttribute("countryIndex", new BufferAttribute(countryIndices, 1));
+  plate.setAttribute("tintAmount", new BufferAttribute(tintData, 1));
   plate.setIndex(new BufferAttribute(indices, 1));
 
   const border = new BufferGeometry();
   border.setAttribute("position", new BufferAttribute(borderPositions, 3));
 
-  cached = { plate, border, countryCount: count };
+  cached = { plate, border, countryCount: count, tintData, indexByIso };
   console.log("[earth] geometry built:", {
     countries: count,
     polygons: polygons.length,

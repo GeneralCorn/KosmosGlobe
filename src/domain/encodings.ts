@@ -1,6 +1,6 @@
 import type { Category, CountryHeat, NewsEvent } from "./types";
 
-const MARKER_RGB: Record<Category, [number, number, number]> = {
+export const MARKER_RGB: Record<Category, [number, number, number]> = {
   geopolitics: [1.0, 0.4196, 0.2902],
   economics: [0.3569, 0.6588, 1.0],
   health: [0.498, 0.878, 0.659],
@@ -49,4 +49,26 @@ export function shouldPulse(event: NewsEvent): boolean {
 
 export function countryTint(heat: CountryHeat): number {
   return Math.max(0, Math.min(1, heat.heatScore));
+}
+
+export function countryHeatTint(
+  countryCode: string,
+  events: NewsEvent[],
+  countryHeat: CountryHeat[],
+): number {
+  let conflictCount = 0;
+  for (let i = 0; i < events.length; i++) {
+    if (events[i].countryCode === countryCode && events[i].category === "geopolitics") {
+      conflictCount++;
+    }
+  }
+  const conflictWeight = Math.min(conflictCount / 5, 1.0);
+  let baseHeat = 0;
+  for (let i = 0; i < countryHeat.length; i++) {
+    if (countryHeat[i].code === countryCode) {
+      baseHeat = countryHeat[i].heatScore;
+      break;
+    }
+  }
+  return Math.min(conflictWeight * 0.7 + baseHeat * 0.6, 1.0);
 }
