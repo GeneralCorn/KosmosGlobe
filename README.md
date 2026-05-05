@@ -15,7 +15,7 @@ The app runs against local API fixtures by default (`src/api/fixtures/`). To swi
 ## Requirements
 
 - Node 20+
-- Xcode 16+ with iOS 17 simulator
+- Xcode 16+ with iOS 17 simulator or physical iPhone 13+
 - CocoaPods (`brew install cocoapods`)
 
 ## Architecture
