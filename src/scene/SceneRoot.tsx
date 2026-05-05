@@ -11,6 +11,8 @@ import { useStore } from "../domain/store";
 
 const AUTO_ROTATION_RATE = 0.05;
 const IDLE_RESUME_MS = 0;
+const DEFAULT_CAMERA_Z = 2.2;
+const CAM_LERP = 0.05;
 
 export default function SceneRoot() {
   useFrame((state, delta) => {
@@ -19,12 +21,21 @@ export default function SceneRoot() {
       return;
     }
 
+    if (!gestureState.isInteracting) {
+      const dz = gestureState.targetCameraZ - gestureState.cameraZ;
+      if (Math.abs(dz) > 0.001) {
+        gestureState.cameraZ += dz * CAM_LERP;
+      }
+    }
+
     const hasSelection = useStore.getState().selectedSignalId !== null;
     const now = Date.now();
+    const atDefaultZoom = gestureState.cameraZ >= DEFAULT_CAMERA_Z * 0.95;
     const idle =
       !gestureState.isInteracting &&
       !gestureState.isLerpingToSelection &&
       !hasSelection &&
+      atDefaultZoom &&
       now - gestureState.lastInteractionTime > IDLE_RESUME_MS;
 
     if (idle) {

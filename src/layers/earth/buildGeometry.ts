@@ -13,6 +13,7 @@ export type EarthGeometry = {
   countryCount: number;
   tintData: Float32Array;
   indexByIso: Map<string, number>;
+  isTopData: Uint8Array;
 };
 
 let cached: EarthGeometry | null = null;
@@ -25,6 +26,7 @@ export function buildEarthGeometry(): EarthGeometry {
 
   const positionList: number[] = [];
   const countryIndexList: number[] = [];
+  const isTopList: number[] = [];
   const indexList: number[] = [];
   const borderPositionList: number[] = [];
 
@@ -52,6 +54,8 @@ export function buildEarthGeometry(): EarthGeometry {
     );
   }
 
+  const MAX_EDGE_DEG_SQ = 10 * 10;
+
   for (const poly of polygons) {
     const flat: number[] = [];
     const holeIndices: number[] = [];
@@ -66,11 +70,59 @@ export function buildEarthGeometry(): EarthGeometry {
         flat.push(lng, lat);
       }
     }
-    const ringPointCount = flat.length / 2;
-    if (ringPointCount < 3) {
+    const boundaryVertCount = flat.length / 2;
+    if (boundaryVertCount < 3) {
       continue;
     }
 
+    const tris = earcut(flat, holeIndices, 2);
+
+    const subTris: number[] = [];
+    function edgeLenSq(a: number, b: number): number {
+      const dx = flat[a * 2] - flat[b * 2];
+      const dy = flat[a * 2 + 1] - flat[b * 2 + 1];
+      return dx * dx + dy * dy;
+    }
+    function midpointVert(a: number, b: number): number {
+      const idx = flat.length / 2;
+      flat.push(
+        (flat[a * 2] + flat[b * 2]) / 2,
+        (flat[a * 2 + 1] + flat[b * 2 + 1]) / 2,
+      );
+      return idx;
+    }
+    function emit(a: number, b: number, c: number, depth: number): void {
+      if (depth > 5) {
+        subTris.push(a, b, c);
+        return;
+      }
+      const ab = edgeLenSq(a, b);
+      const bc = edgeLenSq(b, c);
+      const ca = edgeLenSq(c, a);
+      const maxLenSq = ab > bc ? (ab > ca ? ab : ca) : bc > ca ? bc : ca;
+      if (maxLenSq <= MAX_EDGE_DEG_SQ) {
+        subTris.push(a, b, c);
+        return;
+      }
+      if (ab >= bc && ab >= ca) {
+        const m = midpointVert(a, b);
+        emit(a, m, c, depth + 1);
+        emit(m, b, c, depth + 1);
+      } else if (bc >= ca) {
+        const m = midpointVert(b, c);
+        emit(a, b, m, depth + 1);
+        emit(a, m, c, depth + 1);
+      } else {
+        const m = midpointVert(c, a);
+        emit(a, b, m, depth + 1);
+        emit(b, c, m, depth + 1);
+      }
+    }
+    for (let i = 0; i < tris.length; i += 3) {
+      emit(tris[i], tris[i + 1], tris[i + 2], 0);
+    }
+
+    const ringPointCount = flat.length / 2;
     const bottomBase = vertOffset;
     const topBase = vertOffset + ringPointCount;
 
@@ -79,20 +131,19 @@ export function buildEarthGeometry(): EarthGeometry {
       const lat = flat[i * 2 + 1];
       pushVertex(lng, lat, SPHERE_RADIUS);
       countryIndexList.push(poly.countryIndex);
+      isTopList.push(0);
     }
     for (let i = 0; i < ringPointCount; i += 1) {
       const lng = flat[i * 2];
       const lat = flat[i * 2 + 1];
       pushVertex(lng, lat, PLATE_TOP_RADIUS);
       countryIndexList.push(poly.countryIndex);
+      isTopList.push(1);
     }
     vertOffset += ringPointCount * 2;
 
-    const tris = earcut(flat, holeIndices, 2);
-    for (let i = 0; i < tris.length; i += 3) {
-      indexList.push(topBase + tris[i]);
-      indexList.push(topBase + tris[i + 2]);
-      indexList.push(topBase + tris[i + 1]);
+    for (let i = 0; i < subTris.length; i += 1) {
+      indexList.push(topBase + subTris[i]);
     }
 
     let ringStart = 0;
@@ -117,6 +168,7 @@ export function buildEarthGeometry(): EarthGeometry {
 
   const positions = new Float32Array(positionList);
   const countryIndices = new Float32Array(countryIndexList);
+  const isTopData = new Uint8Array(isTopList);
   const indices =
     vertOffset > 65535
       ? new Uint32Array(indexList)
@@ -128,12 +180,13 @@ export function buildEarthGeometry(): EarthGeometry {
   plate.setAttribute("position", new BufferAttribute(positions, 3));
   plate.setAttribute("countryIndex", new BufferAttribute(countryIndices, 1));
   plate.setAttribute("tintAmount", new BufferAttribute(tintData, 1));
+  plate.setAttribute("isTop", new BufferAttribute(isTopData, 1));
   plate.setIndex(new BufferAttribute(indices, 1));
 
   const border = new BufferGeometry();
   border.setAttribute("position", new BufferAttribute(borderPositions, 3));
 
-  cached = { plate, border, countryCount: count, tintData, indexByIso };
+  cached = { plate, border, countryCount: count, tintData, isTopData, indexByIso };
   console.log("[earth] geometry built:", {
     countries: count,
     polygons: polygons.length,

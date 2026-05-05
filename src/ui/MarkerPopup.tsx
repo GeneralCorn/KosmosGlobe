@@ -43,31 +43,39 @@ export default function MarkerPopup() {
   const popupExpanded = useStore((s) => s.popupExpanded);
   const setPopupExpanded = useStore((s) => s.setPopupExpanded);
   const setDetailMode = useStore((s) => s.setDetailMode);
+  const detailMode = useStore((s) => s.detailMode);
 
   const opacity = useSharedValue(0);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lerpDoneRef = useRef(false);
 
   useEffect(() => {
     if (selectedEvent) {
-      opacity.value = withTiming(1, { duration: 150 });
+      opacity.value = 0;
+      lerpDoneRef.current = false;
       if (gestureState.hasSelectedScreen) {
         setPos({ x: gestureState.selectedScreenX, y: gestureState.selectedScreenY });
       }
       intervalRef.current = setInterval(() => {
-        if (gestureState.hasSelectedScreen) {
-          const nx = gestureState.selectedScreenX;
-          const ny = gestureState.selectedScreenY;
-          setPos((prev) => {
-            if (Math.abs(prev.x - nx) < 2 && Math.abs(prev.y - ny) < 2) {
-              return prev;
+        if (!lerpDoneRef.current) {
+          if (gestureState.hasSelectedScreen) {
+            const nx = gestureState.selectedScreenX;
+            const ny = gestureState.selectedScreenY;
+            setPos({ x: nx, y: ny });
+          }
+          if (!gestureState.isLerpingToSelection) {
+            lerpDoneRef.current = true;
+            if (gestureState.hasSelectedScreen) {
+              setPos({ x: gestureState.selectedScreenX, y: gestureState.selectedScreenY });
             }
-            return { x: nx, y: ny };
-          });
+            opacity.value = withTiming(1, { duration: 200 });
+          }
         }
       }, 67);
     } else {
       opacity.value = withTiming(0, { duration: 150 });
+      lerpDoneRef.current = false;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -96,7 +104,7 @@ export default function MarkerPopup() {
     bottomSheetRef.current?.snapToIndex(1);
   }, [setDetailMode]);
 
-  if (!selectedEvent) {
+  if (!selectedEvent || detailMode) {
     return null;
   }
 

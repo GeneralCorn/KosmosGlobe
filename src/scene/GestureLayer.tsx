@@ -50,6 +50,7 @@ export default function GestureLayer({
         .onChange((e) => {
           const z = gestureState.pinchStartZ / Math.max(e.scale, 0.01);
           gestureState.cameraZ = Math.max(CAMERA_CLOSE, Math.min(CAMERA_FAR, z));
+          gestureState.targetCameraZ = gestureState.cameraZ;
           gestureState.lastInteractionTime = Date.now();
         })
         .onEnd(() => {

@@ -4,6 +4,7 @@ export const gestureState = {
   rotX: 0,
   rotY: 0,
   cameraZ: 2.2,
+  targetCameraZ: 2.2,
   isInteracting: false,
   lastInteractionTime: 0,
   pinchStartZ: 0,

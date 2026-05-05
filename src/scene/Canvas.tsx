@@ -28,30 +28,46 @@ function computeCameraZ(): number {
 const CAMERA_Z = computeCameraZ();
 gestureState.cameraZ = CAMERA_Z;
 
-const fpsState = { current: 0 };
+const fpsState = {
+  worstDeltaMs: 0,
+  frameCount: 0,
+  lastWallTime: 0,
+};
 
 function FpsTracker() {
-  useFrame((_, delta) => {
-    if (delta > 0) {
-      const inst = 1 / delta;
-      fpsState.current =
-        fpsState.current === 0 ? inst : fpsState.current * 0.9 + inst * 0.1;
+  useFrame(() => {
+    const now = Date.now();
+    if (fpsState.lastWallTime !== 0) {
+      const wallDelta = now - fpsState.lastWallTime;
+      if (wallDelta > fpsState.worstDeltaMs) fpsState.worstDeltaMs = wallDelta;
     }
+    fpsState.lastWallTime = now;
+    fpsState.frameCount += 1;
   });
   return null;
 }
 
 function FpsReadout() {
-  const [text, setText] = useState("--.-");
+  const [text, setText] = useState("--");
   useEffect(() => {
+    let lastFrames = 0;
+    let lastWindow = Date.now();
     const id = setInterval(() => {
-      setText(fpsState.current.toFixed(1));
-    }, 250);
+      const now = Date.now();
+      const elapsed = (now - lastWindow) / 1000;
+      const framesThisWindow = fpsState.frameCount - lastFrames;
+      const trueAvg = elapsed > 0 ? framesThisWindow / elapsed : 0;
+      const worst = fpsState.worstDeltaMs;
+      setText(`${trueAvg.toFixed(0)} fps · worst ${worst.toFixed(0)}ms`);
+      lastFrames = fpsState.frameCount;
+      lastWindow = now;
+      fpsState.worstDeltaMs = 0;
+    }, 1000);
     return () => clearInterval(id);
   }, []);
   return (
     <View style={styles.fpsWrap} pointerEvents="none">
-      <Text style={styles.fpsText}>{text} FPS</Text>
+      <Text style={styles.fpsText}>{text}</Text>
     </View>
   );
 }

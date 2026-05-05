@@ -53,13 +53,24 @@ function normalizeRing(ring: Ring): Ring {
   return ring;
 }
 
+function stripClose(ring: Ring): Ring {
+  if (ring.length > 1) {
+    const first = ring[0];
+    const last = ring[ring.length - 1];
+    if (first[0] === last[0] && first[1] === last[1]) {
+      return ring.slice(0, -1);
+    }
+  }
+  return ring;
+}
+
 function normalizePolygon(rings: number[][][]): {
   outer: Ring;
   holes: Ring[];
 } {
   const [outerRaw, ...holeRaws] = rings as Ring[];
-  const outer = normalizeRing(outerRaw);
-  const holes = holeRaws.map(normalizeRing);
+  const outer = stripClose(normalizeRing(outerRaw));
+  const holes = holeRaws.map((r) => stripClose(normalizeRing(r as Ring)));
   return { outer, holes };
 }
 

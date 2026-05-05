@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber/native";
-import { BufferAttribute, BufferGeometry } from "three";
+import { BufferAttribute, BufferGeometry, ShaderMaterial } from "three";
 import { useStore } from "../../domain/store";
 import { setVector3FromLatLng } from "../earth/latlng";
 import { Vector3 } from "three";
@@ -9,11 +9,43 @@ import type { NewsEvent } from "../../domain/types";
 const ARC_SEGS = 14;
 const MAX_ARCS = 7;
 const ARC_RADIUS = 1.009;
-const TOTAL_FLOATS = MAX_ARCS * ARC_SEGS * 2 * 3;
+const TOTAL_VERTS = MAX_ARCS * ARC_SEGS * 2;
+const TOTAL_FLOATS = TOTAL_VERTS * 3;
 
 const arcPositions = new Float32Array(TOTAL_FLOATS);
+const arcTValues = new Float32Array(TOTAL_VERTS);
+
+for (let arc = 0; arc < MAX_ARCS; arc++) {
+  for (let s = 0; s < ARC_SEGS; s++) {
+    arcTValues[arc * ARC_SEGS * 2 + s * 2] = s / ARC_SEGS;
+    arcTValues[arc * ARC_SEGS * 2 + s * 2 + 1] = (s + 1) / ARC_SEGS;
+  }
+}
+
 const tempA = new Vector3();
 const tempB = new Vector3();
+
+const vertexShader = `
+  attribute float arcT;
+  varying float vArcT;
+  void main() {
+    vArcT = arcT;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const fragmentShader = `
+  precision mediump float;
+  uniform float uTime;
+  varying float vArcT;
+  void main() {
+    float pulse = fract(uTime * 0.38);
+    float d = abs(vArcT - pulse);
+    float glow = max(0.0, 1.0 - d * 8.0);
+    float alpha = 0.12 + glow * 0.55;
+    gl_FragColor = vec4(1.0, 1.0, 1.0, alpha);
+  }
+`;
 
 function slerpWriteArc(
   out: Float32Array,
@@ -72,14 +104,21 @@ function selectArcTargets(events: NewsEvent[]): NewsEvent[] {
 
 export default function Arcs() {
   const lastVersionRef = useRef(-1);
+  const matRef = useRef<ShaderMaterial>(null);
+
   const geo = useMemo(() => {
     const g = new BufferGeometry();
     g.setAttribute("position", new BufferAttribute(arcPositions, 3));
+    g.setAttribute("arcT", new BufferAttribute(arcTValues, 1));
     g.setDrawRange(0, 0);
     return g;
   }, []);
 
-  useFrame(() => {
+  useFrame((state) => {
+    if (matRef.current) {
+      matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+    }
+
     const snap = useStore.getState();
     if (snap.version === lastVersionRef.current) return;
     lastVersionRef.current = snap.version;
@@ -121,10 +160,12 @@ export default function Arcs() {
 
   return (
     <lineSegments geometry={geo} frustumCulled={false}>
-      <lineBasicMaterial
-        color="#FFFFFF"
+      <shaderMaterial
+        ref={matRef}
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
+        uniforms={{ uTime: { value: 0 } }}
         transparent
-        opacity={0.18}
         depthWrite={false}
       />
     </lineSegments>

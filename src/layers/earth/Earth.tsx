@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber/native";
-import { FrontSide } from "three";
+import { DoubleSide, FrontSide } from "three";
 import type { BufferAttribute, Mesh } from "three";
 import { buildEarthGeometry } from "./buildGeometry";
 import { earthFragmentShader, earthVertexShader } from "./shaders";
@@ -72,7 +72,7 @@ export default function Earth() {
         <shaderMaterial
           vertexShader={earthVertexShader}
           fragmentShader={earthFragmentShader}
-          side={FrontSide}
+          side={DoubleSide}
           transparent={false}
           depthWrite={true}
           depthTest={true}

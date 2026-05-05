@@ -6,7 +6,9 @@ import { setVector3FromLatLng } from "../layers/earth/latlng";
 import { markerOrbitRadius } from "../domain/encodings";
 import { useStore } from "../domain/store";
 
-const LERP_FACTOR = 0.08;
+const LERP_FACTOR = 0.04;
+const SELECTION_CAMERA_Z = 1.65;
+const DEFAULT_CAMERA_Z = 2.2;
 const STOP_THRESHOLD = 0.0002;
 
 const markerLocalPos = new Vector3();
@@ -55,6 +57,9 @@ export default function CameraRig() {
         targetQuat.set(-targetQuat.x, -targetQuat.y, -targetQuat.z, -targetQuat.w);
       }
       gestureState.isLerpingToSelection = true;
+      if (ev && !gestureState.isInteracting) {
+        gestureState.targetCameraZ = SELECTION_CAMERA_Z;
+      }
     }
 
     if (!targetPos) {

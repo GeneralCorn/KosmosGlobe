@@ -4,10 +4,7 @@ export const earthVertexShader = /* glsl */ `
 
   void main() {
     vTintAmount = tintAmount;
-    vec3 sphereNormal = normalize(position);
-    float protrusion = tintAmount * 0.008;
-    vec3 displaced = position + sphereNormal * protrusion;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
