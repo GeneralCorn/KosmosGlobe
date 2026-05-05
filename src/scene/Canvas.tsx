@@ -3,6 +3,12 @@ import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { Canvas as R3FCanvas, useFrame } from "@react-three/fiber/native";
 import { Color } from "three";
 import SceneRoot from "./SceneRoot";
+import GestureLayer from "./GestureLayer";
+import RaycasterBridge from "./RaycasterBridge";
+import CameraRig from "./CameraRig";
+import MarkerPopup from "../ui/MarkerPopup";
+import BottomSheet from "../ui/BottomSheet";
+import { gestureState } from "./gestureState";
 
 const BACKGROUND = "#06080F";
 const TEXT_SECONDARY = "#7D8590";
@@ -20,6 +26,7 @@ function computeCameraZ(): number {
 }
 
 const CAMERA_Z = computeCameraZ();
+gestureState.cameraZ = CAMERA_Z;
 
 const fpsState = { current: 0 };
 
@@ -52,15 +59,26 @@ function FpsReadout() {
 export default function Canvas() {
   return (
     <View style={styles.root}>
-      <R3FCanvas
-        style={styles.canvas}
-        gl={{ antialias: false, alpha: false, powerPreference: "default" }}
-        scene={{ background: new Color(BACKGROUND) }}
-        camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV_DEG, near: 0.1, far: 100 }}
-      >
-        <SceneRoot />
-        <FpsTracker />
-      </R3FCanvas>
+      <GestureLayer>
+        <R3FCanvas
+          style={styles.canvas}
+          gl={{ antialias: false, alpha: false, powerPreference: "default" }}
+          scene={{ background: new Color(BACKGROUND) }}
+          camera={{
+            position: [0, 0, CAMERA_Z],
+            fov: CAMERA_FOV_DEG,
+            near: 0.1,
+            far: 100,
+          }}
+        >
+          <SceneRoot />
+          <FpsTracker />
+          <RaycasterBridge />
+          <CameraRig />
+        </R3FCanvas>
+      </GestureLayer>
+      <MarkerPopup />
+      <BottomSheet />
       <FpsReadout />
     </View>
   );

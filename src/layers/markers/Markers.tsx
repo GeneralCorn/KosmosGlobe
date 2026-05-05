@@ -10,15 +10,18 @@ import {
   markerSize,
 } from "../../domain/encodings";
 import { setVector3FromLatLng } from "../earth/latlng";
+import { hitMeshRef } from "./hitMeshRef";
 
 const MAX_INSTANCES = 100;
 const RENDER_CAP = 50;
+const HIT_SCALE = 2.0;
 const PULSE_FREQ = 0.5;
 const PULSE_AMPLITUDE = 0.1;
 const EMISSION_FLOOR = 0.55;
 
 const tempVec = new Vector3();
 const tempScale = new Vector3();
+const hitTempScale = new Vector3();
 const tempMat = new Matrix4();
 const tempColor = new Color();
 const IDENTITY_QUAT = new Quaternion();
@@ -32,6 +35,7 @@ export default function Markers() {
 
   useFrame((state) => {
     const mesh = meshRef.current;
+    const hitMesh = hitMeshRef.current;
     if (!mesh) {
       return;
     }
@@ -67,6 +71,12 @@ export default function Markers() {
         tempMat.compose(tempVec, IDENTITY_QUAT, tempScale);
         mesh.setMatrixAt(i, tempMat);
 
+        if (hitMesh) {
+          hitTempScale.set(size * HIT_SCALE, size * HIT_SCALE, size * HIT_SCALE);
+          tempMat.compose(tempVec, IDENTITY_QUAT, hitTempScale);
+          hitMesh.setMatrixAt(i, tempMat);
+        }
+
         const rgb = markerColor(ev);
         const emission = markerEmission(ev);
         const brightness = EMISSION_FLOOR + (1 - EMISSION_FLOOR) * emission;
@@ -87,6 +97,11 @@ export default function Markers() {
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) {
         mesh.instanceColor.needsUpdate = true;
+      }
+
+      if (hitMesh) {
+        hitMesh.count = count;
+        hitMesh.instanceMatrix.needsUpdate = true;
       }
 
       if (mostRecentIdx >= 0) {
@@ -119,14 +134,25 @@ export default function Markers() {
   });
 
   return (
-    <instancedMesh
-      ref={meshRef}
-      args={[undefined, undefined, MAX_INSTANCES]}
-      count={0}
-      frustumCulled={false}
-    >
-      <sphereGeometry args={[1, 12, 12]} />
-      <meshBasicMaterial />
-    </instancedMesh>
+    <>
+      <instancedMesh
+        ref={meshRef}
+        args={[undefined, undefined, MAX_INSTANCES]}
+        count={0}
+        frustumCulled={false}
+      >
+        <sphereGeometry args={[1, 12, 12]} />
+        <meshBasicMaterial />
+      </instancedMesh>
+      <instancedMesh
+        ref={hitMeshRef as React.RefObject<InstancedMesh>}
+        args={[undefined, undefined, MAX_INSTANCES]}
+        count={0}
+        frustumCulled={false}
+      >
+        <sphereGeometry args={[1, 8, 8]} />
+        <meshBasicMaterial visible={false} />
+      </instancedMesh>
+    </>
   );
 }

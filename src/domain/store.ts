@@ -10,11 +10,15 @@ type StoreState = {
   events: NewsEvent[];
   countryHeat: CountryHeat[];
   selectedSignalId: string | null;
+  popupExpanded: boolean;
+  detailMode: boolean;
   filters: Filters;
   version: number;
   setEvents: (events: NewsEvent[]) => void;
   setCountryHeat: (heat: CountryHeat[]) => void;
   setSelectedSignal: (id: string | null) => void;
+  setPopupExpanded: (expanded: boolean) => void;
+  setDetailMode: (detail: boolean) => void;
   setFilters: (filters: Filters) => void;
   toggleCategory: (category: Category) => void;
   clearFilters: () => void;
@@ -24,13 +28,18 @@ export const useStore = create<StoreState>((set, get) => ({
   events: [],
   countryHeat: [],
   selectedSignalId: null,
+  popupExpanded: false,
+  detailMode: false,
   filters: { categories: null },
   version: 0,
   setEvents: (events) =>
     set((state) => ({ events, version: state.version + 1 })),
   setCountryHeat: (heat) =>
     set((state) => ({ countryHeat: heat, version: state.version + 1 })),
-  setSelectedSignal: (id) => set({ selectedSignalId: id }),
+  setSelectedSignal: (id) =>
+    set({ selectedSignalId: id, popupExpanded: false, detailMode: false }),
+  setPopupExpanded: (expanded) => set({ popupExpanded: expanded }),
+  setDetailMode: (detail) => set({ detailMode: detail }),
   setFilters: (filters) =>
     set((state) => ({ filters, version: state.version + 1 })),
   toggleCategory: (category) => {

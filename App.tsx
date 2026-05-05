@@ -4,6 +4,7 @@ console.log("[three-check] revision:", THREE.REVISION, "instance:", Math.random(
 import React from "react";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Canvas from "./src/scene/Canvas";
 import { useSyncStoreFromQueries } from "./src/api/queries";
@@ -27,13 +28,15 @@ function DataBootstrap() {
 // Zustand store and useFrame, never through React re-renders.
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <View style={styles.container}>
-        <Canvas />
-        <DataBootstrap />
-        <StatusBar style="light" />
-      </View>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={styles.container}>
+      <QueryClientProvider client={queryClient}>
+        <View style={styles.container}>
+          <Canvas />
+          <DataBootstrap />
+          <StatusBar style="light" />
+        </View>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
 

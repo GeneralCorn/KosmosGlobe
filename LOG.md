@@ -36,6 +36,31 @@ What changes downstream: scope, timeline, code, dependencies.
 
 ## Entries
 
+## 2026-05-04 [MILESTONE] Phase 4 complete — interaction layer
+
+**Summary**
+Gesture controls (pan + pinch + tap), marker tap detection, glance/expanded popup, bottom sheet scaffold at peek by default, and camera lerp to selected marker are all wired together. The three-step escalation (tap marker → glance popup → expand → "full details" → sheet at 50%) is implemented end-to-end, with Phase 5 responsible for real content inside the sheet's mid and full states.
+
+**Context**
+Reanimated 4.1.7 installed clean via `npx expo install react-native-reanimated` (Expo SDK 54 resolved it automatically). The worklets package (`react-native-worklets@0.8.3`) arrived as a transitive dep. Babel plugin: `react-native-reanimated/plugin` (re-exports from `react-native-worklets/plugin`). Prebuild ran without issues. Gestures use plain `gestureState` (a module-level JS object), NOT Reanimated shared values — this keeps gesture math entirely on the JS thread and avoids worklet compilation for pan/pinch/tap callbacks. Only the popup fade animation uses Reanimated (`withTiming` on an opacity shared value). Bottom sheet is `@gorhom/bottom-sheet@5.2.13`.
+
+**Impact**
+Hit-test uses a second invisible InstancedMesh at 2× visual scale (per "invisible oversized mesh" recommendation). Instance index from the raycaster hit maps directly to the visible events array (same order as Phase 3 sync). Camera rig lerps via Euler angle interpolation with `lerpAngle` (wraps diff to [-π,π] for shortest-arc); quaternion slerp deferred since Euler clamped to ±70° tilt avoids gimbal. Phase 5 fills in real content in the sheet's intelligence center sections.
+
+**Links**
+- Related entries: `2026-05-04 [DECISION] Phase 4 interaction decisions`, `2026-05-04 [MILESTONE] Phase 3 complete — orbital markers wired to store`
+
+## 2026-05-04 [DECISION] Phase 4 interaction decisions
+
+**Summary**
+Four key decisions made during Phase 4 implementation. (1) **Gesture bridge**: plain JS module-level mutable object (`gestureState.ts`) bridges GestureDetector (outside Canvas) to `useFrame` (inside Canvas), with `.runOnJS(true)` on all gesture callbacks to force JS-thread execution. No Reanimated shared values for gesture data — simpler, same performance for a globe at this scale. (2) **Hit-test**: invisible InstancedMesh at 2× visual scale, same positions as visual mesh, `visible={false}` material. Instance index maps to `visible[]` array in the same order Markers.tsx syncs them. (3) **Popup positioning**: CameraRig component inside Canvas projects the selected marker each frame using `applyEuler(gestureState.rotX, rotY)` + `project(camera)`, writing screen coords to `gestureState.selectedScreenX/Y`. MarkerPopup reads at 15Hz via `setInterval` — imperceptible lag at 0.05 rad/sec globe rotation. (4) **Sheet content switch**: single `<BottomSheet>` component renders `<SignalDetail>` or `<IntelligenceCenter>` based on `detailMode` boolean from the store; "full details →" sets `detailMode = true` + `sheet.snapToIndex(1)` via a module-level bottomSheetRef.
+
+**Impact**
+Phase 6 clustering will need to update the instance→event mapping (currently direct array index). When a cluster is a node (multiple events), the tap should snap the camera to split-zoom, not open a signal detail popup. RaycasterBridge will need to check whether the hit instance is a leaf or a cluster node before calling `setSelectedSignal`. No change needed to the hit mesh itself — the mesh stays the same; only the mapping changes.
+
+**Links**
+- Related entries: `2026-05-04 [MILESTONE] Phase 4 complete — interaction layer`
+
 ## 2026-05-04 [NOTE] Phase 6 — Zoom-aware hierarchical clustering (Path B, planned)
 
 > **Phase 6 — Zoom-aware hierarchical clustering (Path B).**
